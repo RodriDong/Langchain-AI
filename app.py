@@ -71,7 +71,7 @@ with col1:
     )
 
 with col2:
-    st.subheader("Kết quả chấm bài")
+    st.subheader(f"Kết quả chấm bài của: {user_name}")
     # Hiển thị kết quả từ session state
     if st.session_state.result:
         st.markdown(st.session_state.result)
@@ -80,7 +80,7 @@ with col2:
 
 # Lịch sử chấm bài
 st.divider()
-st.subheader("Lịch sử chấm bài")
+st.subheader(f"Lịch sử chấm bài của: {user_name}")
 
 if memory.history:
     for i, entry in enumerate(reversed(memory.history[-5:])):

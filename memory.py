@@ -19,7 +19,7 @@ class WritingMemory:
     def save_evaluation(self, writing: str, feedback: str, score: float):
         # Luu ket qua cham vao file
         entry = {
-            "writing_snippet": writing[:200],
+            "writing_snippet": writing,
             "feedback_summary": feedback,
             "score": score
         }
