@@ -1,0 +1,8 @@
+.env
+.venv/
+models/
+vectorstores/
+__pycache__/
+*.gguf
+writing_history.json
+user_data.json

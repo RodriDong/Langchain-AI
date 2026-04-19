@@ -1,9 +1,0 @@
-PID: D:\Lab\LangchainA\.venv\Scripts\python.exe
-Start init
-Imported GPT4AllEmbeddings
-Failed to load llamamodel-mainline-cuda-avxonly.dll: LoadLibraryExW failed with error 0x7e
-Failed to load llamamodel-mainline-cuda.dll: LoadLibraryExW failed with error 0x7e
-Initialized GPT4AllEmbeddings in 0.7933132648468018 seconds
-Embedding object type: <class 'langchain_community.embeddings.gpt4all.GPT4AllEmbeddings'>
-Done
-EXIT_CODE_0  
