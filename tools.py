@@ -1,6 +1,19 @@
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import GPT4AllEmbeddings
 from langchain.tools import tool
 import json
 
+# Khởi tạo vector DB một lần duy nhất
+def load_vector_db():
+    embedding_model = GPT4AllEmbeddings(model_file="models/all-MiniLM-L6-v2-f16.gguf")
+    db = FAISS.load_local(
+        "vectorstores/db_faiss",
+        embedding_model,
+        allow_dangerous_deserialization=True
+    )
+    return db
+
+db = load_vector_db()
 @tool
 def grammar_checker(text: str) -> str:
     """Check grammar issues in the writing. Input is the full writing text."""
@@ -13,6 +26,15 @@ def grammar_checker(text: str) -> str:
         "total_sentences": len(sentences),
         "avg_sentence_length": avg_sentence_length,
         "note": "Check for grammar issues in the writing above"
+    })
+@tool
+def grammar_reference_search(query: str) -> str:
+    """Search grammar rules and references from the knowledge base. Input is a grammar topic or error type."""
+    results = db.similarity_search(query, k=2)
+    references = [doc.page_content for doc in results]
+    return json.dumps({
+        "query": query,
+        "references": references
     })
 
 @tool

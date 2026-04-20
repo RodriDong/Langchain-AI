@@ -2,7 +2,7 @@ from langchain_community.embeddings import GPT4AllEmbeddings
 from langchain_community.vectorstores import FAISS
 from langgraph.prebuilt import create_react_agent
 from langchain_groq import ChatGroq
-from tools import grammar_checker, vocabulary_analyzer, coherence_checker, score_calculator
+from tools import grammar_checker, vocabulary_analyzer, coherence_checker, score_calculator, grammar_reference_search
 from memory import WritingMemory
 from dotenv import load_dotenv
 import re
@@ -26,25 +26,47 @@ def load_llm():
     return llm
 
 # Doc vector db tu local
-def read_vector_db():
-    embedding_model = GPT4AllEmbeddings(model_file="models/all-MiniLM-L6-v2-f16.gguf")
-    db = FAISS.load_local(
-        vector_db_path,
-        embedding_model,
-        allow_dangerous_deserialization=True
-    )
-    return db
+
+#def read_vector_db():
+    #embedding_model = GPT4AllEmbeddings(model_file="models/all-MiniLM-L6-v2-f16.gguf")
+    #db = FAISS.load_local(
+    #    vector_db_path,
+   #     embedding_model,
+  #      allow_dangerous_deserialization=True
+ #   )
+#    return db
 
 # Tao ReAct agent voi cac tools cham writing
 def create_writing_agent(llm, memory: WritingMemory, user_context: str = ""):
-    tools = [grammar_checker, vocabulary_analyzer, coherence_checker, score_calculator]
+    tools = [grammar_checker, vocabulary_analyzer, coherence_checker, score_calculator,  grammar_reference_search]
+
+    # Lay lich su chi tiet de inject vao reasoning
+    history_detail = ""
+    if memory.history:
+        history_detail = "Previous evaluations:\n"
+        for i, entry in enumerate(memory.history[-3:]):  # Lay 3 bai gan nhat
+            history_detail += (
+                f"- Submission {i+1}: Score {entry.get('score', 'N/A')}/10. "
+                f"Writing: {entry['writing_snippet'][:100]}... "
+                f"Feedback: {entry['feedback_summary'][:150]}...\n"
+            )
+    else:
+        history_detail = "No previous evaluations available."
 
     system_prompt = f"""You are a professional English writing evaluator.
 
 User info: {user_context}
-Evaluation history: {memory.get_history_summary()}
 
-You have access to tools to analyze the writing. Use them before giving your final answer.
+{history_detail}
+
+IMPORTANT INSTRUCTIONS:
+1. Use the history above to personalize your feedback. For example:
+   - If the user previously had grammar issues, pay extra attention to grammar this time
+   - If the user has improved since last time, acknowledge the improvement
+   - Adjust difficulty of feedback based on user level
+2. You MUST use at least 2 tools before giving your final answer
+3. All feedback must be written in Vietnamese with full diacritical marks
+
 After using the tools, structure your response as:
 
 ## Kết quả chấm bài
@@ -57,15 +79,16 @@ After using the tools, structure your response as:
 - Tổng điểm: X/10
 
 ### Nhận xét chi tiết
-[Nhận xét cụ thể cho từng tiêu chí, viết bằng tiếng Việt có dấu]
+[Nhận xét cụ thể cho từng tiêu chí]
+
+### So sánh với bài trước
+[So sánh điểm mạnh/yếu với lần chấm trước nếu có]
 
 ### Điểm mạnh
-[Những gì người viết làm tốt, viết bằng tiếng Việt có dấu]
+[Những gì người viết làm tốt]
 
 ### Cần cải thiện
-[Gợi ý cụ thể, viết bằng tiếng Việt có dấu]
-
-IMPORTANT: All feedback must be written in Vietnamese with full diacritical marks (dấu tiếng Việt). Do not write Vietnamese without accents."""
+[Gợi ý cụ thể]"""
 
     agent = create_react_agent(
         model=llm,
@@ -82,11 +105,6 @@ if __name__ == "__main__":
 
     llm = load_llm()
     agent = create_writing_agent(llm, memory)
-    if not GROQ_API_KEY:
-        print("Loi: Khong tim thay GROQ_API_KEY trong file .env")
-        exit()
-    else:
-        print(f"API key tim thay: {GROQ_API_KEY[:10]}...")
 
     writing = """
     Yesterday I go to the market with my mother. We buyed many vegetable and fruit.
